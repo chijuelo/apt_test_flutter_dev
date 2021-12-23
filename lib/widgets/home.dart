@@ -1,23 +1,27 @@
 import 'package:apt_test_flutter_dev/shared/colors.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/home_page.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/markets_page.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/profile_page.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+class Home extends StatefulWidget {
+  const Home({Key? key}) : super(key: key);
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _HomeState createState() => _HomeState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomeState extends State<Home> {
   int _selectedIndex = 0;
 
   final List<Widget> tabs = [
-    // PortfolioSection(),
-    // MarketsSection(),
-    // SearchSection(),
-    // NewsSection(),
+    const HomePage(),
+    const MarketsPage(),
+    const SearchPage(),
+    const ProfilePage(),
   ];
 
   @override
