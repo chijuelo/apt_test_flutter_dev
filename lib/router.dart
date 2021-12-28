@@ -1,7 +1,7 @@
 import 'package:apt_test_flutter_dev/widgets/home.dart';
-import 'package:apt_test_flutter_dev/widgets/pages/markets_page.dart';
-import 'package:apt_test_flutter_dev/widgets/pages/profile_page.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/market_page.dart';
 import 'package:apt_test_flutter_dev/widgets/pages/search_page.dart';
+import 'package:apt_test_flutter_dev/widgets/pages/user_settings_page.dart';
 import 'package:flutter/material.dart';
 
 class MyCustomRoute<T> extends MaterialPageRoute<T> {
@@ -27,9 +27,9 @@ MaterialPageRoute getRoute(RouteSettings settings) {
         builder: (_) => const Home(),
         settings: settings,
       );
-    case '/markets':
+    case '/market':
       return MyCustomRoute(
-        builder: (_) => const MarketsPage(),
+        builder: (_) => const MarketPage(),
         settings: settings,
       );
     case '/search':
@@ -37,9 +37,9 @@ MaterialPageRoute getRoute(RouteSettings settings) {
         builder: (_) => const SearchPage(),
         settings: settings,
       );
-    case '/profile':
+    case '/userSettings':
       return MyCustomRoute(
-        builder: (_) => const ProfilePage(),
+        builder: (_) => const UserSettingsPage(),
         settings: settings,
       );
     default:

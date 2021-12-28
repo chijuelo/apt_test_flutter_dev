@@ -1,7 +1,6 @@
 import 'package:apt_test_flutter_dev/shared/colors.dart';
+import 'package:apt_test_flutter_dev/shared/config.dart';
 import 'package:apt_test_flutter_dev/widgets/pages/home_page.dart';
-import 'package:apt_test_flutter_dev/widgets/pages/markets_page.dart';
-import 'package:apt_test_flutter_dev/widgets/pages/profile_page.dart';
 import 'package:apt_test_flutter_dev/widgets/pages/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -15,20 +14,16 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  int _selectedIndex = 0;
-
   final List<Widget> tabs = [
     const HomePage(),
-    const MarketsPage(),
     const SearchPage(),
-    const ProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: kScaffoldBackground,
-        body: tabs.elementAt(_selectedIndex),
+        body: tabs.elementAt(Config.selectedIndexGNB),
         bottomNavigationBar: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8),
@@ -40,8 +35,9 @@ class _HomeState extends State<Home> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                 duration: const Duration(milliseconds: 800),
                 tabBackgroundColor: Colors.white30,
-                selectedIndex: _selectedIndex,
+                selectedIndex: Config.selectedIndexGNB,
                 tabs: _bottomNavigationBarItemItems(),
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 onTabChange: _onItemTapped),
           ),
         ));
@@ -50,25 +46,17 @@ class _HomeState extends State<Home> {
   List<GButton> _bottomNavigationBarItemItems() {
     return [
       const GButton(
-        icon: FontAwesomeIcons.shapes,
+        icon: FontAwesomeIcons.home,
         text: 'Home',
-      ),
-      const GButton(
-        icon: FontAwesomeIcons.suitcase,
-        text: 'Markets',
       ),
       const GButton(
         icon: FontAwesomeIcons.search,
         text: 'Search',
       ),
-      const GButton(
-        icon: FontAwesomeIcons.globeAmericas,
-        text: 'News',
-      ),
     ];
   }
 
   void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() => Config.selectedIndexGNB = index);
   }
 }
