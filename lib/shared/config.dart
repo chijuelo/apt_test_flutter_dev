@@ -1,7 +1,10 @@
 class Config {
+  static bool isConnected = false;
   static const String apiUrl = 'http://173.212.193.40:5486/';
   static int selectedIndexGNB = 0;
-  static const int cantNewMarket = 10;
+  // static int cantNewMarket = 0;
+  static bool flagShowAlert = true;
+  static bool onLine = false;
 
   static Map<String, bool> categories = {
     'Symbol': false,

@@ -1,6 +1,7 @@
+import 'package:apt_test_flutter_dev/shared/config.dart';
 import 'package:flutter/material.dart';
 
-void showAlert(BuildContext context, String menssage) {
+void showAlert(BuildContext context, String menssage, bool isOk, bool back2) {
   showDialog(
       context: context,
       builder: (context) {
@@ -23,12 +24,17 @@ void showAlert(BuildContext context, String menssage) {
                 shape: MaterialStateProperty.all(RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5.0))),
                 elevation: MaterialStateProperty.all(0.0),
-                backgroundColor: MaterialStateProperty.all(Colors.lightGreen),
+                backgroundColor: MaterialStateProperty.all(
+                    isOk ? Colors.lightGreen : Colors.redAccent),
               ),
               child: const Text(
                 'Aceptar',
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Config.flagShowAlert = true;
+                Navigator.pop(context);
+                if (back2) Navigator.pop(context);
+              },
             )
           ],
         );

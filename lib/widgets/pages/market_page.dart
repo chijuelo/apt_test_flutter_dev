@@ -337,16 +337,16 @@ class _MarketPageState extends State<MarketPage> {
 
     if (resp['ok']) {
       if (resp['data'] != null) {
-        showAlert(context, 'ok');
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-        );
+        showAlert(
+            context,
+            'The market ${(resp['data'] as MarketModel).name} was ${_isUpdate ? 'updated' : _isCreate ? 'created' : 'replaced'}',
+            true,
+            true);
       } else {
-        showAlert(context, 'e1');
+        showAlert(context, resp['error'], false, true);
       }
     } else {
-      showAlert(context, 'e2');
+      showAlert(context, resp['error'], false, true);
     }
   }
 }

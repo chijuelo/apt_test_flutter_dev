@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:apt_test_flutter_dev/model/market_model.dart';
@@ -8,11 +9,13 @@ import 'package:apt_test_flutter_dev/shared/preference.dart';
 import 'package:apt_test_flutter_dev/widgets/pages/categories_page.dart';
 import 'package:apt_test_flutter_dev/widgets/utils/alert.dart';
 import 'package:apt_test_flutter_dev/widgets/utils/appbar.dart';
+// import 'package:apt_test_flutter_dev/widgets/utils/find_new_markets.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -32,14 +35,71 @@ class _HomePageState extends State<HomePage> {
   final Preferences _pref = Preferences();
   sort? _sort = sort.noSort;
   Orientation _orientation = Orientation.portrait;
+  List<dynamic> _marketsPref = [];
 
   @override
   void initState() {
     Config.categories.updateAll((key, value) => false);
     final aux = _pref.catSelHome;
     aux.map((e) => Config.categories[e] = true).toList();
+
+    _marketsPref = jsonDecode(_pref.markets);
+
     super.initState();
   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Offline Demo"),
+//       ),
+//       body: OfflineBuilder(
+//         connectivityBuilder: (
+//           BuildContext context,
+//           ConnectivityResult connectivity,
+//           Widget child,
+//         ) {
+//           final bool connected = connectivity != ConnectivityResult.none;
+//           return Stack(
+//             fit: StackFit.expand,
+//             children: [
+//               Positioned(
+//                 height: 24.0,
+//                 left: 0.0,
+//                 right: 0.0,
+//                 child: Container(
+//                   color: connected
+//                       ? const Color(0xFF00EE44)
+//                       : const Color(0xFFEE4400),
+//                   child: Center(
+//                     child: Text(connected ? 'ONLINE' : 'OFFLINE'),
+//                   ),
+//                 ),
+//               ),
+//               const Center(
+//                 child: Text(
+//                   'Yay!',
+//                 ),
+//               ),
+//             ],
+//           );
+//         },
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: const <Widget>[
+//             Text(
+//               'There are no bottons to push :)',
+//             ),
+//             Text(
+//               'Just turn off your internet.',
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +113,9 @@ class _HomePageState extends State<HomePage> {
           if (snapshot.hasData) {
             return Scaffold(
               backgroundColor: kScaffoldBackground,
-              appBar: const CustomAppBar(
+              appBar: CustomAppBar(
                 label: 'Markets',
-                cantNewMarket: Config.cantNewMarket,
+                // cantNewMarket: Config.cantNewMarket,
               ),
               body: _buildContent(context, snapshot.data!),
             );
@@ -72,41 +132,58 @@ class _HomePageState extends State<HomePage> {
   Future<List<MarketModel>> _loadMarkets() async {
     if (_flagLoadMarkets) {
       try {
-        String queryParams = '';
+        if (Config.onLine && await InternetConnectionChecker().hasConnection) {
+          String queryParams = '';
 
-        if (_sort != sort.noSort) {
-          final aux = _sort.toString().substring(5).toUpperCase();
-          queryParams += queryParams != '' ? '&sort=$aux' : '?sort=$aux';
-        }
+          if (_sort != sort.noSort) {
+            final aux = _sort.toString().substring(5).toUpperCase();
+            queryParams += queryParams != '' ? '&sort=$aux' : '?sort=$aux';
+          }
 
-        if (queryParams != '') {
-          int indexEq = queryParams.indexOf('=');
-          String aux1 = queryParams.substring(0, indexEq + 1);
-          String aux2 = queryParams.substring(indexEq + 1);
+          if (queryParams != '') {
+            int indexEq = queryParams.indexOf('=');
+            String aux1 = queryParams.substring(0, indexEq + 1);
+            String aux2 = queryParams.substring(indexEq + 1);
 
-          Config.categories.forEach((key, value) {
-            if (value) {
-              queryParams = '$aux1${key.toLowerCase()},$aux2';
-            }
-          });
-        } else if (Config.categories.containsValue(true)) {
-          queryParams = '?fields=name,';
-          Config.categories.forEach((key, value) {
-            if (value) {
-              queryParams += '${key.toLowerCase()},';
-            }
-          });
-          queryParams = queryParams.substring(0, queryParams.length - 1);
-        }
+            Config.categories.forEach((key, value) {
+              if (value) {
+                queryParams = '$aux1${key.toLowerCase()},$aux2';
+              }
+            });
+          } else if (Config.categories.containsValue(true)) {
+            queryParams = '?fields=name,';
+            Config.categories.forEach((key, value) {
+              if (value) {
+                queryParams += '${key.toLowerCase()},';
+              }
+            });
+            queryParams = queryParams.substring(0, queryParams.length - 1);
+          }
 
-        final Map<String, dynamic>? result =
-            await _marketProvider.getMarkets(queryParams);
-        if (result!['ok']) {
-          _markets = result['data'];
-          _selectedMarket = _markets[0];
-          _flagLoadMarkets = false;
+          final Map<String, dynamic>? result =
+              await _marketProvider.getMarkets(queryParams);
+          if (result!['ok']) {
+            _markets = result['data'];
+            // findNewMarkets(_markets, _marketsPref);
+            _pref.markets = json.encode(_markets);
+            _selectedMarket = _markets[0];
+            _flagLoadMarkets = false;
+          } else {
+            log(result['data']);
+          }
         } else {
-          log(result['data']);
+          if (!Config.onLine) {
+            _marketsPref.map((m) {
+              _markets.add(MarketModel.fromJson(m));
+            }).toList();
+            _selectedMarket = _markets[0];
+          } else {
+            if (Config.flagShowAlert) {
+              Config.flagShowAlert = false;
+              showAlert(context, 'You ar offline, please connet and try again.',
+                  false, false);
+            }
+          }
         }
       } catch (e) {
         log(e.toString());
@@ -201,8 +278,9 @@ class _HomePageState extends State<HomePage> {
         ),
       )),
       onRefresh: () async {
-        _flagLoadMarkets = true;
-        log('reload');
+        setState(() {
+          _flagLoadMarkets = true;
+        });
       },
     );
   }
@@ -316,7 +394,8 @@ class _HomePageState extends State<HomePage> {
                                   .deleteMarket(_selectedMarket.id.toString());
 
                           if (result!['ok']) {
-                            showAlert(context, '');
+                            showAlert(
+                                context, 'The market was deleted', true, false);
                           }
                         },
                         child: const FaIcon(

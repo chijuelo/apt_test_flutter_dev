@@ -39,6 +39,14 @@ class Preferences {
     _prefs?.setString('markets', value);
   }
 
+  String get newMarkets {
+    return _prefs?.getString('newMarkets') ?? '';
+  }
+
+  set newMarkets(String value) {
+    _prefs?.setString('newMarkets', value);
+  }
+
   bool get dataSaving {
     return _prefs?.getBool('dataSaving') ?? false;
   }

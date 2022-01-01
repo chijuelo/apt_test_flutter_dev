@@ -41,7 +41,6 @@ class MarketProvider {
     final query = await _accionDelete('markets/$id');
     return {
       "ok": query["ok"],
-      'data': query['ok'] ? MarketModel.fromJson(query['data']) : query['data']
     };
   }
 

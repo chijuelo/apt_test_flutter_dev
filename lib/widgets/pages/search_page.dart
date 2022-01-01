@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:apt_test_flutter_dev/model/market_model.dart';
@@ -6,9 +7,12 @@ import 'package:apt_test_flutter_dev/shared/colors.dart';
 import 'package:apt_test_flutter_dev/shared/config.dart';
 import 'package:apt_test_flutter_dev/shared/preference.dart';
 import 'package:apt_test_flutter_dev/widgets/pages/categories_page.dart';
+import 'package:apt_test_flutter_dev/widgets/utils/alert.dart';
 import 'package:apt_test_flutter_dev/widgets/utils/appbar.dart';
+// import 'package:apt_test_flutter_dev/widgets/utils/find_new_markets.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({
@@ -27,12 +31,24 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchTEC = TextEditingController();
   final Preferences _pref = Preferences();
   sort? _sort = sort.noSort;
+  List<dynamic> _marketsPref = [];
 
   @override
   void initState() {
     Config.categories.updateAll((key, value) => false);
     final aux = _pref.catSelSearch;
     aux.map((e) => Config.categories[e] = true).toList();
+
+    _marketsPref = jsonDecode(_pref.markets);
+
+    _searchTEC.addListener(() {
+      if (_searchTEC.text != '') {
+        setState(() {
+          _flagLoadMarkets = true;
+        });
+      }
+    });
+
     super.initState();
   }
 
@@ -46,9 +62,9 @@ class _SearchPageState extends State<SearchPage> {
         if (snapshot.hasData) {
           return Scaffold(
             backgroundColor: kScaffoldBackground,
-            appBar: const CustomAppBar(
+            appBar: CustomAppBar(
               label: 'Search Market',
-              cantNewMarket: Config.cantNewMarket,
+              // cantNewMarket: Config.cantNewMarket,
             ),
             body: _buildContent(context, snapshot.data!),
           );
@@ -64,32 +80,52 @@ class _SearchPageState extends State<SearchPage> {
   Future<List<MarketModel>> _loadMarkets() async {
     if (_flagLoadMarkets) {
       try {
-        String queryParams = '';
-        if (!_pref.dataSaving) {
-          queryParams =
-              _searchTEC.text == '' ? '' : '?s={"name": ${_searchTEC.text}}';
+        if (Config.onLine && await InternetConnectionChecker().hasConnection) {
+          String queryParams = '';
+          if (!_pref.dataSaving) {
+            String field = 'name';
+            queryParams = _searchTEC.text == ''
+                ? ''
+                : '?filter=$field||\$cont||${_searchTEC.text}';
 
-          if (Config.categories.containsValue(true)) {
-            queryParams +=
-                queryParams != '' ? '&fields=name,' : '?fields=name,';
-            Config.categories.forEach((key, value) {
-              if (value) {
-                queryParams += '${key.toLowerCase()},';
-              }
-            });
-            queryParams = queryParams.substring(0, queryParams.length - 1);
-          }
+            if (Config.categories.containsValue(true)) {
+              queryParams +=
+                  queryParams != '' ? '&fields=name,' : '?fields=name,';
+              Config.categories.forEach((key, value) {
+                if (value) {
+                  queryParams += '${key.toLowerCase()},';
+                }
+              });
+              queryParams = queryParams.substring(0, queryParams.length - 1);
+            }
 
-          if (_sort != sort.noSort) {
-            queryParams += queryParams != '' ? '&sort=$_sort' : '?sort=$_sort';
+            if (_sort != sort.noSort) {
+              queryParams +=
+                  queryParams != '' ? '&sort=$_sort' : '?sort=$_sort';
+            }
           }
-        }
-        final result = await _marketProvider.getMarkets(queryParams);
-        if (result['ok']) {
-          _markets = result['data'];
-          _flagLoadMarkets = false;
+          final result = await _marketProvider.getMarkets(queryParams);
+          if (result['ok']) {
+            _markets = result['data'];
+
+            // findNewMarkets(_markets, _marketsPref);
+            _pref.markets = json.encode(_markets);
+            _flagLoadMarkets = false;
+          } else {
+            log(result['data']);
+          }
         } else {
-          log(result['data']);
+          if (!Config.onLine) {
+            _marketsPref.map((m) {
+              _markets.add(MarketModel.fromJson(m));
+            }).toList();
+          } else {
+            if (Config.flagShowAlert) {
+              Config.flagShowAlert = false;
+              showAlert(context, 'You ar offline, please connet and try again.',
+                  false, false);
+            }
+          }
         }
       } catch (e) {
         log(e.toString());
@@ -108,9 +144,23 @@ class _SearchPageState extends State<SearchPage> {
             Expanded(flex: 1, child: _searchWidget()),
             Expanded(
               flex: 10,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: _marketsCards(data),
+              child: Scrollbar(
+                isAlwaysShown: true,
+                interactive: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: data.length != 0
+                      ? ListView(
+                          children: _marketsCards(data),
+                        )
+                      : Center(
+                          child: Text(
+                          'Data no found',
+                          style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.redAccent),
+                        )),
                 ),
               ),
             ),
@@ -118,8 +168,9 @@ class _SearchPageState extends State<SearchPage> {
         ),
       )),
       onRefresh: () async {
-        _flagLoadMarkets = true;
-        log('reload');
+        setState(() {
+          _flagLoadMarkets = true;
+        });
       },
     );
   }
@@ -132,8 +183,23 @@ class _SearchPageState extends State<SearchPage> {
           const FaIcon(FontAwesomeIcons.search),
           SizedBox(
             width: _size.width * 0.7,
-            child: TextField(
-              controller: _searchTEC,
+            child: Stack(
+              children: [
+                TextField(
+                  controller: _searchTEC,
+                ),
+                Positioned(
+                  right: 0,
+                  child: GestureDetector(
+                      child: FaIcon(FontAwesomeIcons.times),
+                      onTap: () {
+                        setState(() {
+                          _searchTEC.text = '';
+                          _flagLoadMarkets = true;
+                        });
+                      }),
+                ),
+              ],
             ),
           ),
           GestureDetector(
@@ -191,91 +257,120 @@ class _SearchPageState extends State<SearchPage> {
       height: _size.height * 0.2,
       width: _size.width * 0.9,
       child: Material(
+        borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(26), topRight: Radius.circular(26)),
         color: Colors.transparent,
         child: InkWell(
           onTap: () =>
               Navigator.of(context).pushNamed('/market', arguments: market),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Ink(
-              decoration: BoxDecoration(
-                border: Border.all(width: 1, color: Colors.black54),
-                borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(26),
-                    topRight: Radius.circular(26)),
-                gradient: const LinearGradient(
-                  colors: [
-                    Colors.black26,
-                    Colors.white30,
-                  ],
-                  begin: Alignment.center,
-                  end: Alignment.topCenter,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    height: _size.height * 0.2,
-                    width: _size.width * 0.9,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(26),
-                          topRight: Radius.circular(26)),
-                      child: Image.asset(
-                        'assets/images/pics/Vector.png',
-                        color: Colors.black,
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: _size.height * 0.2,
-                    width: _size.width * 0.9,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(26),
-                          topRight: Radius.circular(26)),
-                      child: Image.asset(
-                        'assets/images/pics/Vector-1.png',
-                        color: Colors.black,
-                        fit: BoxFit.fitWidth,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Hero(
-                          tag: market.id!,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: Text(
-                              market.name!,
-                              style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        Text(
-                          market.country!,
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w300,
-                              color: Colors.white),
-                        )
-                      ],
-                    ),
-                  ),
+          child: Ink(
+            decoration: BoxDecoration(
+              border: Border.all(width: 1, color: Colors.black54),
+              borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(26),
+                  topRight: Radius.circular(26)),
+              gradient: const LinearGradient(
+                colors: [
+                  Colors.black26,
+                  Colors.white30,
                 ],
+                begin: Alignment.center,
+                end: Alignment.topCenter,
               ),
+            ),
+            child: SingleChildScrollView(
+              child: cardContent(market),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget cardContent(MarketModel market) {
+    return Stack(
+      children: [
+        SizedBox(
+          height: _size.height * 0.2,
+          width: _size.width * 0.9,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(26), topRight: Radius.circular(26)),
+            child: Image.asset(
+              'assets/images/pics/Vector.png',
+              color: Colors.black,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: _size.height * 0.2,
+          width: _size.width * 0.9,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(26), topRight: Radius.circular(26)),
+            child: Image.asset(
+              'assets/images/pics/Vector-1.png',
+              color: Colors.black,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30.0, horizontal: 8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Hero(
+                    tag: market.id!,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Text(
+                        market.name!,
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    market.country!,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.white),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: GestureDetector(
+                    onTap: () async {
+                      final Map<String, dynamic>? result = await _marketProvider
+                          .deleteMarket(market.id.toString());
+
+                      if (result!['ok']) {
+                        showAlert(
+                            context, 'The market was deleted', true, false);
+                      }
+                    },
+                    child: const FaIcon(
+                      FontAwesomeIcons.trashAlt,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
