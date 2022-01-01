@@ -116,8 +116,18 @@ class _SearchPageState extends State<SearchPage> {
           }
         } else {
           if (!Config.onLine) {
+            _markets.clear();
             _marketsPref.map((m) {
-              _markets.add(MarketModel.fromJson(m));
+              if (_searchTEC.text != '') {
+                if (m['name']
+                    .toString()
+                    .toLowerCase()
+                    .contains(_searchTEC.text.toLowerCase())) {
+                  _markets.add(MarketModel.fromJson(m));
+                }
+              } else {
+                _markets.add(MarketModel.fromJson(m));
+              }
             }).toList();
           } else {
             Config.onLine = true;
@@ -139,35 +149,34 @@ class _SearchPageState extends State<SearchPage> {
     return RefreshIndicator(
       child: SafeArea(
           child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: data.length != 0
-            ? Column(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                 children: [
                   Expanded(flex: 1, child: _searchWidget()),
-                  Expanded(
-                    flex: 10,
-                    child: Scrollbar(
-                      isAlwaysShown: true,
-                      interactive: true,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ListView(
-                          children: _marketsCards(data),
-                        ),
-                      ),
-                    ),
-                  ),
+                  data.length != 0
+                      ? Expanded(
+                          flex: 10,
+                          child: Scrollbar(
+                            isAlwaysShown: true,
+                            interactive: true,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ListView(
+                                children: _marketsCards(data),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                          'Data no found',
+                          style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.redAccent),
+                        )),
                 ],
-              )
-            : Center(
-                child: Text(
-                'Data no found',
-                style: const TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.redAccent),
-              )),
-      )),
+              ))),
       onRefresh: () async {
         setState(() {
           _flagLoadMarkets = true;
