@@ -4,6 +4,7 @@ import 'package:apt_test_flutter_dev/model/market_model.dart';
 import 'package:apt_test_flutter_dev/repository/market_provider.dart'
     as provider_market;
 import 'package:apt_test_flutter_dev/shared/colors.dart';
+import 'package:apt_test_flutter_dev/shared/config.dart';
 import 'package:apt_test_flutter_dev/widgets/utils/alert.dart';
 import 'package:apt_test_flutter_dev/widgets/utils/appbar.dart';
 import 'package:flutter/material.dart';
@@ -90,9 +91,11 @@ class _MarketPageState extends State<MarketPage> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            !_isCreate ? _createReplaceMarket() : const SizedBox(),
+            !_isCreate && Config.onLine
+                ? _createReplaceMarket()
+                : const SizedBox(),
             _createFields(),
-            _createButton(),
+            Config.onLine ? _createButton() : const SizedBox(),
           ],
         ),
       ),
@@ -245,6 +248,7 @@ class _MarketPageState extends State<MarketPage> {
                 stream: stream,
                 builder: (context, snapshot) {
                   return TextFormField(
+                    readOnly: !Config.onLine,
                     initialValue: data,
                     keyboardType: keyboardType,
                     maxLines: maxLines,

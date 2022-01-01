@@ -28,7 +28,7 @@ void showAlert(BuildContext context, String menssage, bool isOk, bool back2) {
                     isOk ? Colors.lightGreen : Colors.redAccent),
               ),
               child: const Text(
-                'Aceptar',
+                'Acept',
               ),
               onPressed: () {
                 Config.flagShowAlert = true;

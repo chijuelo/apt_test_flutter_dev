@@ -39,7 +39,7 @@ class _SearchPageState extends State<SearchPage> {
     final aux = _pref.catSelSearch;
     aux.map((e) => Config.categories[e] = true).toList();
 
-    _marketsPref = jsonDecode(_pref.markets);
+    if (_pref.markets != '') _marketsPref = jsonDecode(_pref.markets);
 
     _searchTEC.addListener(() {
       if (_searchTEC.text != '') {
@@ -120,6 +120,7 @@ class _SearchPageState extends State<SearchPage> {
               _markets.add(MarketModel.fromJson(m));
             }).toList();
           } else {
+            Config.onLine = true;
             if (Config.flagShowAlert) {
               Config.flagShowAlert = false;
               showAlert(context, 'You ar offline, please connet and try again.',
@@ -139,33 +140,33 @@ class _SearchPageState extends State<SearchPage> {
       child: SafeArea(
           child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(flex: 1, child: _searchWidget()),
-            Expanded(
-              flex: 10,
-              child: Scrollbar(
-                isAlwaysShown: true,
-                interactive: true,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: data.length != 0
-                      ? ListView(
+        child: data.length != 0
+            ? Column(
+                children: [
+                  Expanded(flex: 1, child: _searchWidget()),
+                  Expanded(
+                    flex: 10,
+                    child: Scrollbar(
+                      isAlwaysShown: true,
+                      interactive: true,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ListView(
                           children: _marketsCards(data),
-                        )
-                      : Center(
-                          child: Text(
-                          'Data no found',
-                          style: const TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.redAccent),
-                        )),
-                ),
-              ),
-            ),
-          ],
-        ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Center(
+                child: Text(
+                'Data no found',
+                style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent),
+              )),
       )),
       onRefresh: () async {
         setState(() {

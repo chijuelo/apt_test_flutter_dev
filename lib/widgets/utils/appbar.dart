@@ -27,11 +27,12 @@ class CustomAppBarState extends State<CustomAppBar> {
         children: [
           Expanded(
             child: Text(
-              '${Config.onLine ? 'On' : 'Off'} Line',
+              'Work ${Config.onLine ? 'On' : 'Off'} Line',
               style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Config.onLine ? Colors.lightGreen : Colors.redAccent),
+              textAlign: TextAlign.center,
             ),
           ),
           Expanded(
@@ -40,6 +41,8 @@ class CustomAppBarState extends State<CustomAppBar> {
               onChanged: (value) {
                 setState(() {
                   Config.onLine = value;
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/home', (Route<dynamic> route) => false);
                 });
               },
               activeColor: Config.onLine ? Colors.lightGreen : Colors.redAccent,
@@ -84,18 +87,20 @@ class CustomAppBarState extends State<CustomAppBar> {
         //         ),
         //       )
         //     : const SizedBox(),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5.0),
-          child: GestureDetector(
-            child: const Center(
-              child: FaIcon(
-                FontAwesomeIcons.plus,
-                color: Colors.white,
-              ),
-            ),
-            onTap: () => Navigator.of(context).pushNamed('/market'),
-          ),
-        ),
+        Config.onLine
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                child: GestureDetector(
+                  child: const Center(
+                    child: FaIcon(
+                      FontAwesomeIcons.plus,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(context).pushNamed('/market'),
+                ),
+              )
+            : const SizedBox(),
         // Padding(
         //   padding: const EdgeInsets.symmetric(horizontal: 5.0),
         //   child: GestureDetector(

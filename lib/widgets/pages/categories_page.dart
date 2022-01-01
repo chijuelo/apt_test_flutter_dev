@@ -57,7 +57,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
     List<Widget> _column1 = [];
     List<Widget> _column2 = [];
 
-    if (_sort != sort.noSort && !Config.categories.containsValue(true)) {
+    if (_sort != sort.noSort &&
+        !Config.categories.containsValue(true) &&
+        Config.onLine) {
       Config.categories['Name'] = true;
     }
 

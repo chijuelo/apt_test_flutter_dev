@@ -36,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   sort? _sort = sort.noSort;
   Orientation _orientation = Orientation.portrait;
   List<dynamic> _marketsPref = [];
+  int _index = 1;
 
   @override
   void initState() {
@@ -43,63 +44,10 @@ class _HomePageState extends State<HomePage> {
     final aux = _pref.catSelHome;
     aux.map((e) => Config.categories[e] = true).toList();
 
-    _marketsPref = jsonDecode(_pref.markets);
+    if (_pref.markets != '') _marketsPref = jsonDecode(_pref.markets);
 
     super.initState();
   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text("Offline Demo"),
-//       ),
-//       body: OfflineBuilder(
-//         connectivityBuilder: (
-//           BuildContext context,
-//           ConnectivityResult connectivity,
-//           Widget child,
-//         ) {
-//           final bool connected = connectivity != ConnectivityResult.none;
-//           return Stack(
-//             fit: StackFit.expand,
-//             children: [
-//               Positioned(
-//                 height: 24.0,
-//                 left: 0.0,
-//                 right: 0.0,
-//                 child: Container(
-//                   color: connected
-//                       ? const Color(0xFF00EE44)
-//                       : const Color(0xFFEE4400),
-//                   child: Center(
-//                     child: Text(connected ? 'ONLINE' : 'OFFLINE'),
-//                   ),
-//                 ),
-//               ),
-//               const Center(
-//                 child: Text(
-//                   'Yay!',
-//                 ),
-//               ),
-//             ],
-//           );
-//         },
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: const <Widget>[
-//             Text(
-//               'There are no bottons to push :)',
-//             ),
-//             Text(
-//               'Just turn off your internet.',
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
 
   @override
   Widget build(BuildContext context) {
@@ -173,11 +121,35 @@ class _HomePageState extends State<HomePage> {
           }
         } else {
           if (!Config.onLine) {
+            _markets.clear();
             _marketsPref.map((m) {
               _markets.add(MarketModel.fromJson(m));
             }).toList();
+
+            if (_sort != sort.noSort) {
+              // _markets.sort((m1, m2) =>
+              //     m1.name!.toLowerCase().compareTo(m2.name!.toLowerCase()));
+
+              for (var i = 0; i < _markets.length; i++) {
+                for (var j = i; j < _markets.length - 1; j++) {
+                  MarketModel aux = _markets[i];
+                  if (aux.name!
+                          .toLowerCase()
+                          .compareTo(_markets[j].name!.toLowerCase()) ==
+                      1) {
+                    _markets[i] = _markets[j];
+                    _markets[j] = aux;
+                  }
+                }
+              }
+              _pref.markets = json.encode(_markets);
+
+              _sort = sort.noSort;
+            }
             _selectedMarket = _markets[0];
+            _flagLoadMarkets = false;
           } else {
+            Config.onLine = true;
             if (Config.flagShowAlert) {
               Config.flagShowAlert = false;
               showAlert(context, 'You ar offline, please connet and try again.',
@@ -227,55 +199,81 @@ class _HomePageState extends State<HomePage> {
       child: SafeArea(
           child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 0,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () => _optWin(),
-                  child: const FaIcon(FontAwesomeIcons.slidersH),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: _orientation == Orientation.portrait ? 2 : 8,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: CarouselSlider(
-                    items: _marketsCards(data),
-                    options: CarouselOptions(
-                      height: _size.height * 0.35,
-                      aspectRatio: 16 / 9,
-                      viewportFraction: 0.8,
-                      initialPage: 0,
-                      enableInfiniteScroll: true,
-                      reverse: false,
-                      autoPlay: true,
-                      autoPlayInterval: const Duration(seconds: 5),
-                      autoPlayAnimationDuration:
-                          const Duration(milliseconds: 800),
-                      autoPlayCurve: Curves.fastOutSlowIn,
-                      enlargeCenterPage: false,
-                      onPageChanged: (index, value) {
-                        if (data.length <= index) {
-                          final aux = index ~/ data.length;
-                          index = index - (aux * 20);
-                        }
-                        setState(() {
-                          _selectedMarket = data[index];
-                        });
-                      },
-                      scrollDirection: Axis.horizontal,
-                    )),
-              ),
-            ),
-            Expanded(
-                flex: 4,
-                child: SingleChildScrollView(child: _marketDescriptions())),
-          ],
-        ),
+        child: data.length != 0
+            ? Column(
+                children: [
+                  Expanded(
+                    flex: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '$_index / ${_markets.length}',
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () => _optWin(),
+                            child: const FaIcon(FontAwesomeIcons.slidersH),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: _orientation == Orientation.portrait ? 2 : 8,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: CarouselSlider(
+                          items: _marketsCards(data),
+                          options: CarouselOptions(
+                            height: _size.height * 0.35,
+                            aspectRatio: 16 / 9,
+                            viewportFraction: 0.8,
+                            initialPage: 0,
+                            enableInfiniteScroll: true,
+                            reverse: false,
+                            autoPlay: true,
+                            autoPlayInterval: const Duration(seconds: 5),
+                            autoPlayAnimationDuration:
+                                const Duration(milliseconds: 800),
+                            autoPlayCurve: Curves.fastOutSlowIn,
+                            enlargeCenterPage: false,
+                            onPageChanged: (index, value) {
+                              if (data.length <= index) {
+                                final aux = index ~/ data.length;
+                                index = index - (aux * 20);
+                              }
+                              setState(() {
+                                _index = index + 1;
+                                _selectedMarket = data[index];
+                              });
+                            },
+                            scrollDirection: Axis.horizontal,
+                          )),
+                    ),
+                  ),
+                  Expanded(
+                      flex: 4,
+                      child:
+                          SingleChildScrollView(child: _marketDescriptions())),
+                ],
+              )
+            : Center(
+                child: Text(
+                'Data no found',
+                style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent),
+              )),
       )),
       onRefresh: () async {
         setState(() {
